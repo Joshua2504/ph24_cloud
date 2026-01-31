@@ -106,7 +106,7 @@
             <div class="col-md-4 text-right">
                 <div class="btn-group">
                     <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
-                        <?= $this->Html->safe($heading) ?> <span class="caret"></span>
+                        <?= $this->Html->safe(Language::_('Ph24Cloud.tab_client_actions', true)) ?> <span class="caret"></span>
                     </button>
                     <ul class="dropdown-menu dropdown-menu-right">
                         <?php if ($server_status === 'off') { ?>
