@@ -54,6 +54,7 @@ class Ph24Cloud extends Module
         return [
             'tabClientActions' => Language::_('Ph24Cloud.tab_client_actions', true),
             'tabClientStats' => Language::_('Ph24Cloud.tab_client_stats', true),
+            'tabClientLogs' => Language::_('Ph24Cloud.tab_client_logs', true),
         ];
     }
 
@@ -246,6 +247,64 @@ class Ph24Cloud extends Module
         $this->view->set('server_created', $server_created ?? null);
         $this->view->set('server_ip_addresses', $server_ip_addresses ?? []);
         $this->view->set('server_details', $server_details ?? []);
+        $this->view->set('package', $package);
+        $this->view->set('service', $service);
+
+        return $this->view->fetch();
+    }
+
+    /**
+     * Client tab: Logs - show server action logs
+     *
+     * @param stdClass $package The package
+     * @param stdClass $service The service
+     * @return string HTML content for the tab
+     */
+    public function tabClientLogs($package, $service)
+    {
+        $this->view = new View('client_logs', 'default');
+        $this->view->base_uri = $this->base_uri;
+        $this->view->setDefaultView('components' . DS . 'modules' . DS . 'ph24_cloud' . DS);
+
+        Loader::loadHelpers($this, ['Form', 'Html', 'Widget']);
+
+        $message = null;
+        $logs = [];
+
+        try {
+            $row = $this->getModuleRow();
+            if (!$row && method_exists($this, 'getModuleRows')) {
+                $rows = $this->getModuleRows();
+                if (is_array($rows) && !empty($rows)) {
+                    $row = $rows[0];
+                }
+            }
+
+            if (!$row || empty($row->meta->api_key)) {
+                $message = Language::_('Ph24Cloud.client_logs.no_configured_row', true);
+            } else {
+                $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+                $fields = $this->serviceFieldsToObject($service->fields);
+                $project_id = $fields->project_id ?? null;
+                $server_id = $fields->server_id ?? null;
+
+                if (!$project_id || !$server_id) {
+                    $message = Language::_('Ph24Cloud.client_logs.server_not_found', true);
+                } else {
+                    $resp = $api->getServerLogs($project_id, $server_id);
+                    if ($resp->code >= 200 && $resp->code < 300 && is_array($resp->data)) {
+                        $logs = $resp->data;
+                    } else {
+                        $message = Language::_('Ph24Cloud.client_logs.fetch_failed', true) . ' ' . ($resp->data->message ?? '');
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $message = Language::_('Ph24Cloud.client_logs.fetch_failed', true) . ' ' . $e->getMessage();
+        }
+
+        $this->view->set('message', $message);
+        $this->view->set('logs', $logs);
         $this->view->set('package', $package);
         $this->view->set('service', $service);
 

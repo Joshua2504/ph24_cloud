@@ -1,0 +1,32 @@
+<?php if (isset($message) && $message): ?>
+<div class="Message Message--info"><?= $this->Html->safe($message) ?></div>
+<?php endif; ?>
+
+<h3><?= $this->Html->safe(Language::_('Ph24Cloud.client_logs.heading', true)) ?></h3>
+
+<?php if (empty($logs)): ?>
+    <div class="alert alert-info"><?= $this->Html->safe(Language::_('Ph24Cloud.client_logs.no_logs', true)) ?></div>
+<?php else: ?>
+    <table class="table">
+        <thead>
+            <tr>
+                <th><?= $this->Html->safe(Language::_('Ph24Cloud.client_logs.action', true)) ?></th>
+                <th><?= $this->Html->safe(Language::_('Ph24Cloud.client_logs.run_at', true)) ?></th>
+                
+            </tr>
+        </thead>
+        <tbody>
+            <?php foreach ($logs as $log): ?>
+                <?php
+                    $run_at = $log->runAt ?? null;
+                    $run_at_human = ($run_at && is_numeric($run_at)) ? date('Y-m-d H:i:s', (int)$run_at) : '-';
+                ?>
+                <tr>
+                    <td><?= $this->Html->safe($log->action ?? '-') ?></td>
+                    <td><?= $this->Html->safe($run_at_human) ?></td>
+                    
+                </tr>
+            <?php endforeach; ?>
+        </tbody>
+    </table>
+<?php endif; ?>

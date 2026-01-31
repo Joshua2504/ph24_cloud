@@ -85,6 +85,7 @@ $lang['Ph24Cloud.tab_actions'] = 'Server Actions';
 $lang['Ph24Cloud.tab_stats'] = 'Server Statistics';
 $lang['Ph24Cloud.tab_client_actions'] = 'Actions';
 $lang['Ph24Cloud.tab_client_stats'] = 'Statistics';
+$lang['Ph24Cloud.tab_client_logs'] = 'Logs';
 
 // Client Actions (manage server from client area)
 $lang['Ph24Cloud.client_actions.heading'] = 'Server Overview';
@@ -110,6 +111,17 @@ $lang['Ph24Cloud.client_actions.hostname_updated'] = 'Hostname updated.';
 $lang['Ph24Cloud.client_actions.hostname_update_failed'] = 'Failed to update hostname.';
 $lang['Ph24Cloud.client_actions.cancel'] = 'Cancel';
 $lang['Ph24Cloud.client_actions.power_options'] = 'Power Options';
+
+// Client Logs
+$lang['Ph24Cloud.client_logs.heading'] = 'Server Logs';
+$lang['Ph24Cloud.client_logs.no_logs'] = 'No logs available.';
+$lang['Ph24Cloud.client_logs.action'] = 'Action';
+$lang['Ph24Cloud.client_logs.run_at'] = 'Run At';
+$lang['Ph24Cloud.client_logs.user_id'] = 'OpenStack User ID';
+$lang['Ph24Cloud.client_logs.request_id'] = 'OpenStack Request ID';
+$lang['Ph24Cloud.client_logs.no_configured_row'] = 'No API server is configured.';
+$lang['Ph24Cloud.client_logs.server_not_found'] = 'Server details not found for this service.';
+$lang['Ph24Cloud.client_logs.fetch_failed'] = 'Failed to retrieve logs.';
 
 // Order options
 $lang['Ph24Cloud.order_options.first'] = 'First Available Server';
