@@ -86,6 +86,7 @@ $lang['Ph24Cloud.tab_stats'] = 'Server Statistics';
 $lang['Ph24Cloud.tab_client_actions'] = 'Actions';
 $lang['Ph24Cloud.tab_client_stats'] = 'Statistics';
 $lang['Ph24Cloud.tab_client_logs'] = 'Logs';
+$lang['Ph24Cloud.tab_client_console'] = 'VNC Console';
 
 // Client Actions (manage server from client area)
 $lang['Ph24Cloud.client_actions.heading'] = 'Server Overview';
@@ -122,6 +123,14 @@ $lang['Ph24Cloud.client_logs.request_id'] = 'OpenStack Request ID';
 $lang['Ph24Cloud.client_logs.no_configured_row'] = 'No API server is configured.';
 $lang['Ph24Cloud.client_logs.server_not_found'] = 'Server details not found for this service.';
 $lang['Ph24Cloud.client_logs.fetch_failed'] = 'Failed to retrieve logs.';
+
+// Client Console
+$lang['Ph24Cloud.client_console.heading'] = 'VNC Console';
+$lang['Ph24Cloud.client_console.no_url'] = 'Console URL not available.';
+$lang['Ph24Cloud.client_console.open_console'] = 'Open Console';
+$lang['Ph24Cloud.client_console.no_configured_row'] = 'No API server is configured.';
+$lang['Ph24Cloud.client_console.server_not_found'] = 'Server details not found for this service.';
+$lang['Ph24Cloud.client_console.fetch_failed'] = 'Failed to retrieve console URL.';
 
 // Order options
 $lang['Ph24Cloud.order_options.first'] = 'First Available Server';

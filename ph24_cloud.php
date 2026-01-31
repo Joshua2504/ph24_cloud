@@ -55,6 +55,7 @@ class Ph24Cloud extends Module
             'tabClientActions' => Language::_('Ph24Cloud.tab_client_actions', true),
             'tabClientStats' => Language::_('Ph24Cloud.tab_client_stats', true),
             'tabClientLogs' => Language::_('Ph24Cloud.tab_client_logs', true),
+            'tabClientConsole' => Language::_('Ph24Cloud.tab_client_console', true),
         ];
     }
 
@@ -305,6 +306,64 @@ class Ph24Cloud extends Module
 
         $this->view->set('message', $message);
         $this->view->set('logs', $logs);
+        $this->view->set('package', $package);
+        $this->view->set('service', $service);
+
+        return $this->view->fetch();
+    }
+
+    /**
+     * Client tab: VNC Console
+     *
+     * @param stdClass $package The package
+     * @param stdClass $service The service
+     * @return string HTML content for the tab
+     */
+    public function tabClientConsole($package, $service)
+    {
+        $this->view = new View('client_console', 'default');
+        $this->view->base_uri = $this->base_uri;
+        $this->view->setDefaultView('components' . DS . 'modules' . DS . 'ph24_cloud' . DS);
+
+        Loader::loadHelpers($this, ['Form', 'Html', 'Widget']);
+
+        $message = null;
+        $console_url = null;
+
+        try {
+            $row = $this->getModuleRow();
+            if (!$row && method_exists($this, 'getModuleRows')) {
+                $rows = $this->getModuleRows();
+                if (is_array($rows) && !empty($rows)) {
+                    $row = $rows[0];
+                }
+            }
+
+            if (!$row || empty($row->meta->api_key)) {
+                $message = Language::_('Ph24Cloud.client_console.no_configured_row', true);
+            } else {
+                $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+                $fields = $this->serviceFieldsToObject($service->fields);
+                $project_id = $fields->project_id ?? null;
+                $server_id = $fields->server_id ?? null;
+
+                if (!$project_id || !$server_id) {
+                    $message = Language::_('Ph24Cloud.client_console.server_not_found', true);
+                } else {
+                    $resp = $api->getServerConsole($project_id, $server_id);
+                    if ($resp->code >= 200 && $resp->code < 300 && isset($resp->data->url)) {
+                        $console_url = $resp->data->url;
+                    } else {
+                        $message = Language::_('Ph24Cloud.client_console.fetch_failed', true) . ' ' . ($resp->data->message ?? '');
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $message = Language::_('Ph24Cloud.client_console.fetch_failed', true) . ' ' . $e->getMessage();
+        }
+
+        $this->view->set('message', $message);
+        $this->view->set('console_url', $console_url);
         $this->view->set('package', $package);
         $this->view->set('service', $service);
 
