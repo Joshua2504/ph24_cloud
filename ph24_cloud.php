@@ -1247,47 +1247,6 @@ class Ph24Cloud extends Module
         );
         $fields->setField($hostname);
 
-        // SSH Key Selection
-        $ssh_key_options = ['' => Language::_('Ph24Cloud.service_field.ssh_key_none', true)];
-        try {
-            if ($api && $row && !empty($row->meta->master_project_id)) {
-                // Get client_id from vars, or from session if not in vars
-                $client_id = $vars->client_id ?? null;
-                
-                // If not in vars, try to get from session
-                if (!$client_id && isset($_SESSION['blesta_client_id'])) {
-                    $client_id = $_SESSION['blesta_client_id'];
-                }
-                
-                // Also check if it's in the global session variable
-                if (!$client_id && class_exists('Session')) {
-                    Loader::loadComponents($this, ['Session']);
-                    $client_id = $this->Session->read('blesta_client_id');
-                }
-                
-                if ($client_id) {
-                    $keys_resp = $api->getKeyPairs($row->meta->master_project_id);
-                    if ($keys_resp->code >= 200 && $keys_resp->code < 300 && is_array($keys_resp->data)) {
-                        $customer_prefix = 'cust-' . $client_id . '-';
-                        foreach ($keys_resp->data as $key) {
-                            if (isset($key->name) && strpos($key->name, $customer_prefix) === 0) {
-                                $display_name = substr($key->name, strlen($customer_prefix));
-                                $ssh_key_options[$key->name] = $display_name;
-                            }
-                        }
-                    }
-                }
-            }
-        } catch (Exception $e) {
-            error_log('PH24Cloud getClientAddFields SSH key fetch error: ' . $e->getMessage());
-        }
-
-        $ssh_key_label = $fields->label(Language::_('Ph24Cloud.service_field.ssh_key', true), 'ssh_key_selection');
-        $ssh_key_label->attach(
-            $fields->fieldSelect('ssh_key_selection', $ssh_key_options, ($vars->ssh_key_selection ?? ''), ['id' => 'ssh_key_selection'])
-        );
-        $fields->setField($ssh_key_label);
-
         return $fields;
     }
 
@@ -1470,7 +1429,8 @@ class Ph24Cloud extends Module
 
         // Prepare server parameters
         $network_ids = !empty($networks) ? [($networks[0]->id ?? $networks[0]->uuid)] : [];
-        $firewall_ids = !empty($firewalls) ? [($firewalls[0]->id ?? $firewalls[0]->uuid)] : [];
+        // Do not assign firewall on creation
+        $firewall_ids = [];
         
         // Get image_id and facility_id from configurable options
         // Look for options named 'ph24_operating_system' and 'ph24_facility'
@@ -1512,15 +1472,6 @@ class Ph24Cloud extends Module
         // Generate root password
         $root_password = $this->generatePassword(16);
         
-        // Handle SSH key selection
-        $ssh_key_names = [];
-        
-        // Check if user selected an existing SSH key
-        if (!empty($vars['ssh_key_selection'])) {
-            $ssh_key_names[] = $vars['ssh_key_selection'];
-            error_log('PH24Cloud: Using existing SSH key: ' . $vars['ssh_key_selection']);
-        }
-        
         $server_params = [
             'name' => $vars['hostname'],
             'flavorId' => $package->meta->flavor_id,
@@ -1530,11 +1481,6 @@ class Ph24Cloud extends Module
             'firewallIds' => $firewall_ids,
             'count' => 1
         ];
-        
-        // Add SSH keys if any were selected or created
-        if (!empty($ssh_key_names)) {
-            $server_params['keyPairNames'] = $ssh_key_names;
-        }
         
         // Add facility if specified
         if ($facility_id) {
