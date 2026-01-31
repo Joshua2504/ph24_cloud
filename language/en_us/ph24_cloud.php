@@ -86,6 +86,31 @@ $lang['Ph24Cloud.tab_stats'] = 'Server Statistics';
 $lang['Ph24Cloud.tab_client_actions'] = 'Actions';
 $lang['Ph24Cloud.tab_client_stats'] = 'Statistics';
 
+// Client Actions (manage server from client area)
+$lang['Ph24Cloud.client_actions.heading'] = 'Server Overview';
+$lang['Ph24Cloud.client_actions.no_server'] = 'No server information is available for this service.';
+$lang['Ph24Cloud.client_actions.field_status'] = 'Status';
+$lang['Ph24Cloud.client_actions.field_power'] = 'Power State';
+$lang['Ph24Cloud.client_actions.field_ips'] = 'IP Addresses';
+$lang['Ph24Cloud.client_actions.button_start'] = 'Start Server';
+$lang['Ph24Cloud.client_actions.button_stop'] = 'Stop Server';
+$lang['Ph24Cloud.client_actions.button_reboot'] = 'Reboot Server';
+$lang['Ph24Cloud.client_actions.action_success'] = 'Action %1$s accepted.';
+$lang['Ph24Cloud.client_actions.action_failed'] = 'Action %1$s failed.';
+$lang['Ph24Cloud.client_actions.status_unavailable'] = 'Unable to retrieve server status at this time.';
+$lang['Ph24Cloud.client_actions.unexpected_error'] = 'An unexpected error occurred while performing this action.';
+$lang['Ph24Cloud.client_actions.server_not_found'] = 'Server details not found for this service.';
+$lang['Ph24Cloud.client_actions.edit'] = 'Edit';
+$lang['Ph24Cloud.client_actions.change_hostname'] = 'Change Hostname';
+$lang['Ph24Cloud.client_actions.hostname'] = 'Hostname';
+$lang['Ph24Cloud.client_actions.hostname_placeholder'] = 'Enter new hostname';
+$lang['Ph24Cloud.client_actions.action_change_hostname'] = 'Save Hostname';
+$lang['Ph24Cloud.client_actions.hostname_required'] = 'Please enter a hostname.';
+$lang['Ph24Cloud.client_actions.hostname_updated'] = 'Hostname updated.';
+$lang['Ph24Cloud.client_actions.hostname_update_failed'] = 'Failed to update hostname.';
+$lang['Ph24Cloud.client_actions.cancel'] = 'Cancel';
+$lang['Ph24Cloud.client_actions.power_options'] = 'Power Options';
+
 // Order options
 $lang['Ph24Cloud.order_options.first'] = 'First Available Server';
 

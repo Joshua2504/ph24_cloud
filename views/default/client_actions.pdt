@@ -1,0 +1,301 @@
+<?php if (isset($message) && $message): ?>
+<div class="Message Message--info"><?= $this->Html->safe($message) ?></div>
+<?php endif; ?>
+
+<style>
+    .copyable { position: relative; display: inline-block; }
+    .copyable .instant-tooltip {
+        position: absolute;
+        top: -34px;
+        left: 0;
+        background: #333;
+        color: #fff;
+        padding: 4px 6px;
+        border-radius: 3px;
+        font-size: 12px;
+        white-space: nowrap;
+        display: none;
+        z-index: 1000;
+    }
+    .copyable:hover .instant-tooltip { display: block; }
+</style>
+
+<h3><?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.heading', true)) ?></h3>
+
+<?php if (empty($service_fields) || empty($service_fields->server_id)): ?>
+    <div class="alert alert-info"><?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.no_server', true)) ?></div>
+<?php else: ?>
+
+<?php
+    $heading = Language::_('Ph24Cloud.client_actions.heading', true);
+    $server_name = $server_details['name'] ?? ($service_fields->hostname ?? 'Server');
+    $server_id = $server_details['id'] ?? ($service_fields->server_id ?? 'N/A');
+    $created_at = $server_details['createdAtHuman'] ?? ($server_details['createdAt'] ?? $server_created ?? 'N/A');
+
+    $ipv4 = $service_fields->ipv4_address ?? null;
+    $ipv6 = $service_fields->ipv6_address ?? null;
+
+    $ip_list = [];
+    if (!empty($server_ip_addresses) && is_array($server_ip_addresses)) {
+        $ip_list = $server_ip_addresses;
+    } elseif (!empty($server->ipAddresses) && is_array($server->ipAddresses)) {
+        $ip_list = $server->ipAddresses;
+    }
+    if (empty($ip_list)) {
+        $ip_list = array_filter([$ipv4 ?? null, $ipv6 ?? null]);
+    }
+    $ip_list_text = !empty($ip_list) ? implode(', ', $ip_list) : 'none';
+?>
+
+<div class="panel panel-blesta" style="margin-bottom:15px;">
+    <div class="panel-body" style="padding:15px 20px;">
+        <div class="row">
+            <div class="col-md-8">
+                <div style="display:flex; align-items:center; gap:15px;">
+                    <?php
+                        $status_class = 'default';
+                        $status_display = ucfirst($server_status ?? 'Unknown');
+                        $status_icon = 'fa-circle';
+                        switch ($server_status) {
+                            case 'running':
+                                $status_class = 'success'; $status_icon = 'fa-lightbulb'; break;
+                            case 'off':
+                                $status_class = 'danger'; $status_display = 'Offline'; break;
+                            default:
+                                $status_class = 'default'; $status_display = 'Unknown'; break;
+                        }
+                    ?>
+                    <span class="label label-<?= $this->Html->safe($status_class) ?>" style="font-size:14px; padding:8px 12px;">
+                        <i class="fas <?= $this->Html->safe($status_icon) ?>"></i> <?= $this->Html->safe($status_display) ?>
+                    </span>
+                    <span style="font-size:18px; font-weight:500;">
+                        <?= $this->Html->safe($server_name) ?> <?= isset($package) ? ' - ' . $this->Html->safe($package->name) : '' ?>
+                    </span>
+                </div>
+                <div style="margin-top:10px; color:#666; font-size:13px;">
+                    <i class="fas fa-globe"></i>
+                    <span class="copyable" onclick="copyToClipboard('<?= $this->Html->safe($ipv4 ?? '') ?>', this)" style="cursor: <?= !empty($ipv4) ? 'pointer' : 'default' ?>; <?= !empty($ipv4) ? 'text-decoration: underline dotted;' : '' ?>">
+                        <?= $this->Html->safe(!empty($ipv4) ? $ipv4 : 'no IPv4') ?>
+                        <?php if (!empty($ipv4)) { ?><span class="instant-tooltip">Click to copy</span><?php } ?>
+                    </span>
+                    <span style="margin-left:15px;">
+                        <i class="fas fa-globe"></i>
+                        <span class="copyable" onclick="copyToClipboard('<?= $this->Html->safe($ipv6 ?? '') ?>', this)" style="cursor: <?= !empty($ipv6) ? 'pointer' : 'default' ?>; <?= !empty($ipv6) ? 'text-decoration: underline dotted;' : '' ?>">
+                            <?= $this->Html->safe(!empty($ipv6) ? $ipv6 : 'no IPv6') ?>
+                            <?php if (!empty($ipv6)) { ?><span class="instant-tooltip">Click to copy</span><?php } ?>
+                        </span>
+                    </span>
+                </div>
+                <?php if (isset($service_fields->location) || isset($service_fields->image) || isset($traffic_data)): ?>
+                <div style="margin-top:5px; color:#666; font-size:13px;">
+                    <?php if (isset($service_fields->location) || isset($service_fields->image)): ?>
+                        <span>
+                            <?php if (isset($service_fields->location)) { ?><i class="fas fa-map-marker-alt"></i> <?= $this->Html->safe($service_fields->location) ?><?php } ?>
+                            <?php if (isset($service_fields->image)) { ?><span style="margin-left:10px;"><i class="fas fa-compact-disc"></i> <?= $this->Html->safe($service_fields->image) ?></span><?php } ?>
+                        </span>
+                    <?php endif; ?>
+                    <?php if (isset($traffic_data)): ?>
+                        <span style="<?= (isset($service_fields->location) || isset($service_fields->image)) ? 'margin-left:20px; padding-left:20px; border-left:1px solid #ddd;' : '' ?>">
+                            <i class="fas fa-arrow-down" style="color:#5cb85c;"></i> <?= isset($traffic_data['inbound']) ? $this->Html->safe($traffic_data['inbound']) : '0 B' ?>
+                            <span style="margin-left:10px;"><i class="fas fa-arrow-up" style="color:#f0ad4e;"></i> <?= isset($traffic_data['outbound']) ? $this->Html->safe($traffic_data['outbound']) : '0 B' ?></span>
+                        </span>
+                    <?php endif; ?>
+                </div>
+                <?php endif; ?>
+            </div>
+            <div class="col-md-4 text-right">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                        <?= $this->Html->safe($heading) ?> <span class="caret"></span>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-right">
+                        <?php if ($server_status === 'off') { ?>
+                        <li>
+                            <a href="#" onclick="event.preventDefault(); document.getElementById('action-start-form').submit();">
+                                <i class="fas fa-play text-success"></i> <?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.button_start', true)) ?>
+                            </a>
+                        </li>
+                        <?php } ?>
+                        <?php if ($server_status === 'running') { ?>
+                        <li>
+                            <a href="#" onclick="event.preventDefault(); document.getElementById('action-shutdown-form').submit();">
+                                <i class="fas fa-power-off text-warning"></i> <?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.button_stop', true)) ?>
+                            </a>
+                        </li>
+                        <?php } ?>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<?php echo $this->Form->create(null, ['id' => 'action-start-form', 'style' => 'display:none;']); ?>
+<input type="hidden" name="ph24_action" value="START">
+<?php echo $this->Form->end(); ?>
+
+<?php echo $this->Form->create(null, ['id' => 'action-shutdown-form', 'style' => 'display:none;']); ?>
+<input type="hidden" name="ph24_action" value="STOP">
+<?php echo $this->Form->end(); ?>
+
+<?php echo $this->Form->create(null, ['id' => 'action-reboot-form', 'style' => 'display:none;']); ?>
+<input type="hidden" name="ph24_action" value="REBOOT">
+<?php echo $this->Form->end(); ?>
+
+<div class="panel panel-blesta">
+    <div class="panel-heading"><h3 class="panel-title"><?= $this->Html->safe($heading) ?></h3></div>
+    <div class="panel-body">
+        <div class="row">
+            <div class="col-md-8">
+                <table class="table">
+                    <tr>
+                        <td><strong><?= $this->Html->safe('Name') ?>:</strong></td>
+                        <td>
+                            <?= $this->Html->safe($server_name) ?>
+                            <button type="button" class="btn btn-xs btn-default" onclick="$('#hostnameModal').modal('show');" style="margin-left:10px;">
+                                <i class="fas fa-edit"></i> <?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.edit', true)) ?>
+                            </button>
+                        </td>
+                    </tr>
+                    <tr><td><strong><?= $this->Html->safe('Location') ?>:</strong></td><td><?= $this->Html->safe($server_details['availabilityZone'] ?? 'N/A') ?></td></tr>
+                    <tr><td><strong><?= $this->Html->safe('Status') ?>:</strong></td><td><?= $this->Html->safe($server_details['status'] ?? 'N/A') ?></td></tr>
+                    <tr><td><strong><?= $this->Html->safe('Power State') ?>:</strong></td><td><?= $this->Html->safe($server_details['powerState'] ?? 'N/A') ?></td></tr>
+                    <tr>
+                        <td><strong><?= $this->Html->safe('IPs') ?>:</strong></td>
+                        <td>
+                            <?php if (!empty($ip_list)): ?>
+                                <?php foreach ($ip_list as $ip): ?>
+                                    <div><?= $this->Html->safe($ip) ?></div>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <?= $this->Html->safe('none') ?>
+                            <?php endif; ?>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+            <div class="col-md-4">
+                <table class="table">
+                    <tr><td><strong><?= $this->Html->safe('Model') ?>:</strong></td><td><?= $this->Html->safe($server_specs['name'] ?? 'N/A') ?></td></tr>
+                    <tr><td><strong><?= $this->Html->safe('CPU') ?>:</strong></td><td><?= $this->Html->safe(isset($server_specs['cores']) ? $server_specs['cores'] . ' vCore' : 'N/A') ?></td></tr>
+                    <tr><td><strong><?= $this->Html->safe('RAM') ?>:</strong></td><td><?= $this->Html->safe(isset($server_specs['memory']) ? $server_specs['memory'] . ' MB' : 'N/A') ?></td></tr>
+                    <tr><td><strong><?= $this->Html->safe('Disk') ?>:</strong></td><td><?= $this->Html->safe(isset($server_specs['disk']) ? $server_specs['disk'] . ' GB' : 'N/A') ?></td></tr>
+                    <tr><td><strong><?= $this->Html->safe('OS') ?>:</strong></td><td><?= $this->Html->safe($server_details['imageName'] ?? 'N/A') ?></td></tr>
+                </table>
+            </div>
+        </div>
+
+        <details style="margin-top:15px;">
+            <summary><strong><?= $this->Html->safe('IDs') ?></strong></summary>
+            <table class="table" style="margin-top:10px;">
+                <tr><td><strong><?= $this->Html->safe('Server ID') ?>:</strong></td><td><?= $this->Html->safe($server_id) ?></td></tr>
+                <tr><td><strong><?= $this->Html->safe('Flavor ID') ?>:</strong></td><td><?= $this->Html->safe($server_details['flavorId'] ?? 'N/A') ?></td></tr>
+                <tr><td><strong><?= $this->Html->safe('Image ID') ?>:</strong></td><td><?= $this->Html->safe($server_details['imageId'] ?? 'N/A') ?></td></tr>
+            </table>
+        </details>
+    </div>
+</div>
+
+<!-- Power Options Panel -->
+<div class="panel panel-blesta">
+    <div class="panel-heading"><h3 class="panel-title"><?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.power_options', true)) ?></h3></div>
+    <div class="panel-body">
+        <div class="btn-group" role="group" style="gap: 10px; display: flex;">
+            <?php $start_disabled = ($server_status !== 'off'); ?>
+            <button type="button" class="btn btn-success" onclick="document.getElementById('action-start-form').submit();" <?= $start_disabled ? 'disabled' : '' ?>>
+                <i class="fas fa-play"></i> <?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.button_start', true)) ?>
+            </button>
+
+            <?php $running_disabled = ($server_status !== 'running'); ?>
+            <button type="button" class="btn btn-warning" onclick="document.getElementById('action-shutdown-form').submit();" <?= $running_disabled ? 'disabled' : '' ?>>
+                <i class="fas fa-power-off"></i> <?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.button_stop', true)) ?>
+            </button>
+
+            <button type="button" class="btn btn-info" onclick="document.getElementById('action-reboot-form').submit();" <?= $running_disabled ? 'disabled' : '' ?>>
+                <i class="fas fa-sync"></i> <?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.button_reboot', true)) ?>
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- Hostname Change Modal -->
+<div class="modal fade" id="hostnameModal" tabindex="-1" role="dialog" aria-labelledby="hostnameModalLabel">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title" id="hostnameModalLabel"><?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.change_hostname', true)) ?></h4>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+            </div>
+            <?php echo $this->Form->create(null); ?>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="new_hostname"><?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.hostname', true)) ?></label>
+                    <?php
+                        echo $this->Form->fieldText(
+                            'new_hostname',
+                            $server_details['name'] ?? ($service_fields->hostname ?? ''),
+                            ['class' => 'form-control', 'id' => 'new_hostname', 'placeholder' => Language::_('Ph24Cloud.client_actions.hostname_placeholder', true)]
+                        );
+                    ?>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-default" data-dismiss="modal"><?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.cancel', true)) ?></button>
+                <button type="submit" name="ph24_action" value="CHANGE_HOSTNAME" class="btn btn-primary">
+                    <i class="fas fa-save"></i> <?= $this->Html->safe(Language::_('Ph24Cloud.client_actions.action_change_hostname', true)) ?>
+                </button>
+            </div>
+            <?php echo $this->Form->end(); ?>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+function copyToClipboard(text, element) {
+    if (!text) return;
+
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(function() {
+            var originalText = element.innerHTML;
+            element.innerHTML = '<i class="fas fa-check" style="color: #5cb85c;"></i> Copied!';
+            element.style.color = '#5cb85c';
+
+            setTimeout(function() {
+                element.innerHTML = originalText;
+                element.style.color = '';
+            }, 2000);
+        }).catch(function() {
+            fallbackCopy(text, element);
+        });
+    } else {
+        fallbackCopy(text, element);
+    }
+}
+
+function fallbackCopy(text, element) {
+    var textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.setAttribute('readonly', '');
+    textarea.style.position = 'absolute';
+    textarea.style.left = '-9999px';
+    document.body.appendChild(textarea);
+    textarea.select();
+
+    try {
+        document.execCommand('copy');
+        var originalText = element.innerHTML;
+        element.innerHTML = '<i class="fas fa-check" style="color: #5cb85c;"></i> Copied!';
+        element.style.color = '#5cb85c';
+        setTimeout(function() {
+            element.innerHTML = originalText;
+            element.style.color = '';
+        }, 2000);
+    } catch (e) {
+        // ignore
+    }
+
+    document.body.removeChild(textarea);
+}
+</script>
+
+<?php endif; ?>

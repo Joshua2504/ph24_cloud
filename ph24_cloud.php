@@ -58,6 +58,201 @@ class Ph24Cloud extends Module
     }
 
     /**
+     * Client tab: Actions - show server status and allow start/stop actions
+     *
+     * @param stdClass $package The package
+     * @param stdClass $service The service
+     * @return string HTML content for the tab
+     */
+    public function tabClientActions($package, $service)
+    {
+        // Load view
+        $this->view = new View('client_actions', 'default');
+        $this->view->base_uri = $this->base_uri;
+        $this->view->setDefaultView('components' . DS . 'modules' . DS . 'ph24_cloud' . DS);
+
+        // Load helpers required for this view (Html used in template)
+        Loader::loadHelpers($this, ['Form', 'Html', 'Widget']);
+
+        // Prepare defaults
+        $message = null;
+        $server = null;
+        $status = null;
+        $power_state = null;
+
+        // Get module row and API
+        try {
+            $row = $this->getModuleRow();
+            if (!$row && method_exists($this, 'getModuleRows')) {
+                $rows = $this->getModuleRows();
+                if (is_array($rows) && !empty($rows)) {
+                    $row = $rows[0];
+                }
+            }
+
+            if (!$row || empty($row->meta->api_key)) {
+                $message = Language::_('Ph24Cloud.!error.api.no_configured_row', true);
+            } else {
+                $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+
+                // Convert service fields to object
+                $fields = $this->serviceFieldsToObject($service->fields);
+                $project_id = $fields->project_id ?? null;
+                $server_id = $fields->server_id ?? null;
+
+                // Prepare variables for the view similar to the Hetzner module
+                $service_fields = $fields;
+                $server_status = null;
+                $server_specs = null;
+                $traffic_data = null;
+                $server_created = null;
+                $server_ip_addresses = [];
+                $server_details = [];
+
+                if (!$project_id || !$server_id) {
+                    $message = Language::_('Ph24Cloud.!error.api.server_not_found', true);
+                } else {
+                    // Handle POSTed action (start/stop)
+                    if (!empty($_POST['ph24_action'])) {
+                        $action = strtoupper($_POST['ph24_action']);
+                        try {
+                            if ($action === 'CHANGE_HOSTNAME') {
+                                $new_name = trim($_POST['new_hostname'] ?? '');
+                                if ($new_name === '') {
+                                    $message = Language::_('Ph24Cloud.client_actions.hostname_required', true);
+                                } else {
+                                    $resp = $api->updateServer($project_id, $server_id, ['name' => $new_name]);
+                                    if ($resp->code >= 200 && $resp->code < 300) {
+                                        $message = Language::_('Ph24Cloud.client_actions.hostname_updated', true);
+                                        $fields->hostname = $new_name;
+                                        $service_fields->hostname = $new_name;
+
+                                        // Persist the hostname in service meta
+                                        try {
+                                            $this->setServiceFields($service->id, [
+                                                ['key' => 'hostname', 'value' => $new_name, 'encrypted' => 0]
+                                            ]);
+                                        } catch (Exception $e) {
+                                            // Ignore meta persistence errors; API update already succeeded
+                                        }
+                                    } else {
+                                        $message = Language::_('Ph24Cloud.client_actions.hostname_update_failed', true) . ' ' .
+                                                   ($resp->data->message ?? '');
+                                    }
+                                }
+                            } else {
+                                $resp = $api->serverAction($project_id, $server_id, $action);
+                                if ($resp->code >= 200 && $resp->code < 300) {
+                                    $message = Language::_('Ph24Cloud.client_actions.action_success', true, $action);
+                                } else {
+                                    $message = Language::_('Ph24Cloud.client_actions.action_failed', true, $action) . ' ' .
+                                               ($resp->data->message ?? '');
+                                }
+                            }
+                        } catch (Exception $e) {
+                            $message = Language::_('Ph24Cloud.client_actions.action_failed', true, $action) . ' ' . $e->getMessage();
+                        }
+                    }
+
+                    // Fetch current server info
+                    try {
+                        $server_resp = $api->getServer($project_id, $server_id);
+                        if ($server_resp->code >= 200 && $server_resp->code < 300) {
+                            $server = $server_resp->data;
+                            $status = $server->status ?? null;
+                            $power_state = $server->powerState ?? null;
+
+                            // Map API status/power to simplified server_status used in the view
+                            $lower_status = strtolower($status ?? ($power_state ?? ''));
+                            if (strpos($lower_status, 'run') !== false || strpos($lower_status, 'active') !== false) {
+                                $server_status = 'running';
+                            } elseif (strpos($lower_status, 'stop') !== false || strpos($lower_status, 'off') !== false) {
+                                $server_status = 'off';
+                            } else {
+                                $server_status = 'unknown';
+                            }
+
+                            // Extract IPs from API response if available
+                            if (isset($server->ipAddresses) && is_array($server->ipAddresses)) {
+                                $server_ip_addresses = $server->ipAddresses;
+                                foreach ($server->ipAddresses as $ip) {
+                                    if (is_string($ip)) {
+                                        if (strpos($ip, ':') !== false) {
+                                            $service_fields->ipv6_address = $service_fields->ipv6_address ?? $ip;
+                                        } else {
+                                            $service_fields->ipv4_address = $service_fields->ipv4_address ?? $ip;
+                                        }
+                                    }
+                                }
+                            }
+
+                            // Populate server specs if available
+                            if (isset($server->flavor)) {
+                                $server_specs = [
+                                    'name' => $server->flavor->name ?? null,
+                                    'flavorId' => $server->flavor->flavorId ?? null,
+                                    'cores' => $server->flavor->meta->cores ?? null,
+                                    'memory' => $server->flavor->meta->memory ?? null,
+                                    'swap' => $server->flavor->meta->swap ?? null,
+                                    'disk' => $server->flavor->meta->disk ?? null
+                                ];
+                            }
+
+                            if (isset($server->createdAt)) {
+                                $server_created = $server->createdAt;
+                            }
+
+                                $az = $server->availabilityZone ?? null;
+                                $az_label = $az ? $this->availabilityZoneLabel($az) : null;
+
+                                $server_details = [
+                                'id' => $server->id ?? null,
+                                'name' => $server->name ?? null,
+                                'flavorId' => $server->flavorId ?? null,
+                                    'availabilityZone' => $az_label ?? $az,
+                                'status' => $server->status ?? null,
+                                'powerState' => $server->powerState ?? null,
+                                'createdAt' => $server->createdAt ?? null,
+                                'imageId' => $server->image->id ?? null,
+                                'imageName' => $server->image->name ?? null,
+                                'imageDistro' => $server->image->distro ?? null,
+                                'imageArch' => $server->image->architecture ?? null
+                            ];
+
+                            if (!empty($server_details['createdAt']) && is_numeric($server_details['createdAt'])) {
+                                $server_details['createdAtHuman'] = date('Y-m-d H:i:s', (int)$server_details['createdAt']);
+                            }
+                            // power_state already set above
+                        } else {
+                            $message = $message ?: Language::_('Ph24Cloud.client_actions.status_unavailable', true);
+                        }
+                    } catch (Exception $e) {
+                        $message = $message ?: Language::_('Ph24Cloud.client_actions.status_unavailable', true) . ' ' . $e->getMessage();
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $message = Language::_('Ph24Cloud.client_actions.unexpected_error', true) . ' ' . $e->getMessage();
+        }
+
+        $this->view->set('message', $message);
+        $this->view->set('server', $server ?? null);
+        $this->view->set('status', $status ?? null);
+        $this->view->set('power_state', $power_state ?? null);
+        $this->view->set('service_fields', $service_fields ?? null);
+        $this->view->set('server_status', $server_status ?? null);
+        $this->view->set('server_specs', $server_specs ?? null);
+        $this->view->set('traffic_data', $traffic_data ?? null);
+        $this->view->set('server_created', $server_created ?? null);
+        $this->view->set('server_ip_addresses', $server_ip_addresses ?? []);
+        $this->view->set('server_details', $server_details ?? []);
+        $this->view->set('package', $package);
+        $this->view->set('service', $service);
+
+        return $this->view->fetch();
+    }
+
+    /**
      * Performs any necessary bootstraping actions
      *
      * @param int $module_id The ID of the module being installed
@@ -526,8 +721,8 @@ class Ph24Cloud extends Module
     protected function availabilityZoneLabel($identifier, $az = null)
     {
         $map = [
-            'fra1' => 'Frankfurt am Main, Germany (Maincubes)',
-            'fra' => 'Frankfurt am Main, Germany (Maincubes)',
+            'fra1' => 'Frankfurt am Main 🇩🇪 (Maincubes)',
+            'fra' => 'Frankfurt am Main 🇩🇪 (Maincubes)',
             'ams1' => 'Amsterdam, Netherlands',
             'nyc1' => 'New York, USA',
             'lon1' => 'London, UK',
