@@ -206,3 +206,23 @@ $lang['Ph24Cloud.client_ssh_keys.not_authorized'] = 'You are not authorized to d
 $lang['Ph24Cloud.client_ssh_keys.no_configured_row'] = 'No API server is configured.';
 $lang['Ph24Cloud.client_ssh_keys.server_not_found'] = 'Server details not found for this service.';
 $lang['Ph24Cloud.client_ssh_keys.unexpected_error'] = 'An unexpected error occurred.';
+
+// Client Rebuild Tab
+$lang['Ph24Cloud.tab_client_rebuild'] = 'Rebuild';
+$lang['Ph24Cloud.client_rebuild.heading_rebuild'] = 'Rebuild Server';
+$lang['Ph24Cloud.client_rebuild.warning_title'] = 'Warning!';
+$lang['Ph24Cloud.client_rebuild.warning_message'] = 'Rebuilding your server will permanently erase all data on the server and reinstall the operating system. This action cannot be undone. Please make sure you have backed up any important data before proceeding.';
+$lang['Ph24Cloud.client_rebuild.field_os'] = 'Operating System';
+$lang['Ph24Cloud.client_rebuild.field_os_select'] = '-- Select an OS --';
+$lang['Ph24Cloud.client_rebuild.field_os_help'] = 'Select the operating system to install on your server.';
+$lang['Ph24Cloud.client_rebuild.field_ssh_key'] = 'SSH Key (Optional)';
+$lang['Ph24Cloud.client_rebuild.field_ssh_key_none'] = '-- No SSH Key --';
+$lang['Ph24Cloud.client_rebuild.field_ssh_key_help'] = 'Optionally select an SSH key to add to the server during rebuild.';
+$lang['Ph24Cloud.client_rebuild.btn_rebuild'] = 'Rebuild Server';
+$lang['Ph24Cloud.client_rebuild.confirm_rebuild'] = 'Are you sure you want to rebuild this server? All data will be permanently erased!';
+$lang['Ph24Cloud.client_rebuild.rebuild_initiated'] = 'Server rebuild has been initiated. Your server will be reinstalled shortly.';
+$lang['Ph24Cloud.client_rebuild.rebuild_failed'] = 'Failed to initiate server rebuild.';
+$lang['Ph24Cloud.client_rebuild.missing_image'] = 'Please select an operating system.';
+$lang['Ph24Cloud.client_rebuild.no_configured_row'] = 'No API server is configured.';
+$lang['Ph24Cloud.client_rebuild.server_not_found'] = 'Server details not found for this service.';
+$lang['Ph24Cloud.client_rebuild.unexpected_error'] = 'An unexpected error occurred.';

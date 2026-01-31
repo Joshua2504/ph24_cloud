@@ -380,6 +380,17 @@ class Ph24Api
     }
 
     /**
+     * Get cloud images for a project
+     *
+     * @param string $project_id The project ID
+     * @return stdClass Response object
+     */
+    public function getCloudImages($project_id)
+    {
+        return $this->request('GET', "/v1/cloud/project/{$project_id}/image");
+    }
+
+    /**
      * Get available addons
      *
      * @return stdClass Response object
@@ -426,5 +437,20 @@ class Ph24Api
     public function deleteKeyPair($project_id, $key_pair_name)
     {
         return $this->request('DELETE', "/v1/cloud/project/{$project_id}/key-pair/{$key_pair_name}");
+    }
+
+    /**
+     * Execute an action on a server
+     *
+     * @param string $project_id The project ID
+     * @param string $server_id The server ID
+     * @param string $action The action to execute (REBOOT, FORCE_REBOOT, RESCALE, REBUILD, START, STOP)
+     * @param array $params Additional parameters (e.g., flavorId for RESCALE, imageId/keyPairNames for REBUILD)
+     * @return stdClass Response object
+     */
+    public function executeServerAction($project_id, $server_id, $action, $params = [])
+    {
+        $data = array_merge(['action' => $action], $params);
+        return $this->request('POST', "/v1/cloud/project/{$project_id}/server/{$server_id}/action", $data);
     }
 }

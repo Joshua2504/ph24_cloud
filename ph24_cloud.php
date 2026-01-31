@@ -57,6 +57,7 @@ class Ph24Cloud extends Module
             'tabClientLogs' => Language::_('Ph24Cloud.tab_client_logs', true),
             'tabClientConsole' => Language::_('Ph24Cloud.tab_client_console', true),
             'tabClientSshKeys' => Language::_('Ph24Cloud.tab_client_ssh_keys', true),
+            'tabClientRebuild' => Language::_('Ph24Cloud.tab_client_rebuild', true),
         ];
     }
 
@@ -529,6 +530,208 @@ class Ph24Cloud extends Module
         $this->view->set('error', $error);
         $this->view->set('ssh_keys', $ssh_keys);
         $this->view->set('client_id', $client_id);
+        $this->view->set('package', $package);
+        $this->view->set('service', $service);
+
+        return $this->view->fetch();
+    }
+
+    /**
+     * Client rebuild tab
+     *
+     * @param stdClass $package A stdClass object representing the current package
+     * @param stdClass $service A stdClass object representing the current service
+     * @return string HTML content for the tab
+     */
+    public function tabClientRebuild($package, $service)
+    {
+        $this->view = new View('client_rebuild', 'default');
+        $this->view->base_uri = $this->base_uri;
+        $this->view->setDefaultView('components' . DS . 'modules' . DS . 'ph24_cloud' . DS);
+
+        Loader::loadHelpers($this, ['Form', 'Html', 'Widget']);
+
+        $message = null;
+        $error = null;
+        $ssh_keys = [];
+        $images = [];
+        $client_id = null;
+
+        // Handle POST - rebuild action
+        if (!empty($_POST['rebuild_server'])) {
+            try {
+                $row = $this->getModuleRow();
+                if (!$row && method_exists($this, 'getModuleRows')) {
+                    $rows = $this->getModuleRows();
+                    if (is_array($rows) && !empty($rows)) {
+                        $row = $rows[0];
+                    }
+                }
+
+                if (!$row || empty($row->meta->api_key)) {
+                    $error = Language::_('Ph24Cloud.client_rebuild.no_configured_row', true);
+                } else {
+                    $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+                    $fields = $this->serviceFieldsToObject($service->fields);
+                    $project_id = $fields->project_id ?? null;
+                    $server_id = $fields->server_id ?? null;
+                    $client_id = $service->client_id;
+
+                    if (!$project_id || !$server_id) {
+                        $error = Language::_('Ph24Cloud.client_rebuild.server_not_found', true);
+                    } else {
+                        $image_id = $_POST['image_id'] ?? null;
+                        $ssh_key = $_POST['ssh_key'] ?? null;
+
+                        if (empty($image_id)) {
+                            $error = Language::_('Ph24Cloud.client_rebuild.missing_image', true);
+                        } else {
+                            // Get server details before deletion
+                            $server_resp = $api->getServer($project_id, $server_id);
+                            error_log('PH24Cloud rebuild: getServer response code: ' . $server_resp->code);
+                            if ($server_resp->code < 200 || $server_resp->code >= 300) {
+                                $error = Language::_('Ph24Cloud.client_rebuild.server_not_found', true);
+                            } else {
+                                $server = $server_resp->data;
+                                error_log('PH24Cloud rebuild: Server details: ' . print_r($server, true));
+                                
+                                // Delete the existing server
+                                $delete_resp = $api->deleteServer($project_id, $server_id);
+                                error_log('PH24Cloud rebuild: deleteServer response code: ' . $delete_resp->code);
+                                if ($delete_resp->code >= 200 && $delete_resp->code < 300) {
+                                    // Get networks and firewalls for new server
+                                    $networks_resp = $api->getNetworks($project_id);
+                                    error_log('PH24Cloud rebuild: getNetworks response code: ' . $networks_resp->code);
+                                    $network_ids = [];
+                                    if ($networks_resp->code >= 200 && $networks_resp->code < 300 && is_array($networks_resp->data)) {
+                                        foreach ($networks_resp->data as $network) {
+                                            $network_ids[] = $network->id ?? $network->uuid;
+                                        }
+                                        error_log('PH24Cloud rebuild: Network IDs: ' . implode(', ', $network_ids));
+                                    }
+                                    
+                                    // No firewalls on creation
+                                    $firewall_ids = [];
+                                    
+                                    // Prepare server creation parameters
+                                    $server_params = [
+                                        'name' => $server->name ?? $service->name,
+                                        'flavorId' => $server->flavor->id ?? $server->flavorId ?? null,
+                                        'imageId' => $image_id,
+                                        'networkIds' => $network_ids,
+                                        'firewallIds' => $firewall_ids,
+                                        'count' => 1
+                                    ];
+                                    
+                                    // Add SSH key if selected
+                                    if (!empty($ssh_key)) {
+                                        $server_params['keyPairNames'] = [$ssh_key];
+                                    }
+                                    
+                                    // Add optional parameters if they exist
+                                    if (isset($server->availabilityZone)) {
+                                        $server_params['availabilityZone'] = $server->availabilityZone;
+                                    }
+                                    if (isset($server->facilityId)) {
+                                        $server_params['facilityId'] = $server->facilityId;
+                                    }
+                                    
+                                    error_log('PH24Cloud rebuild: Server params: ' . print_r($server_params, true));
+                                    
+                                    // Create new server
+                                    $create_resp = $api->createServer($project_id, $server_params);
+                                    error_log('PH24Cloud rebuild: createServer response code: ' . $create_resp->code);
+                                    error_log('PH24Cloud rebuild: createServer response: ' . print_r($create_resp->data, true));
+                                    
+                                    if ($create_resp->code >= 200 && $create_resp->code < 300) {
+                                        $new_server_id = $create_resp->data->id ?? $create_resp->data->uuid ?? null;
+                                        
+                                        if ($new_server_id) {
+                                            // Update service fields with new server ID
+                                            Loader::loadModels($this, ['Services']);
+                                            $service_fields = [
+                                                'project_id' => $project_id,
+                                                'server_id' => $new_server_id
+                                            ];
+                                            $this->Services->edit($service->id, ['fields' => $service_fields]);
+                                            error_log('PH24Cloud rebuild: Success! New server ID: ' . $new_server_id);
+                                            
+                                            $message = Language::_('Ph24Cloud.client_rebuild.rebuild_initiated', true);
+                                        } else {
+                                            $error = Language::_('Ph24Cloud.client_rebuild.rebuild_failed', true) . ' Server created but no ID returned.';
+                                            error_log('PH24Cloud rebuild: Error - No server ID in response');
+                                        }
+                                    } else {
+                                        $error = Language::_('Ph24Cloud.client_rebuild.rebuild_failed', true) . ' ' . ($create_resp->data->message ?? 'Failed to create new server.');
+                                        error_log('PH24Cloud rebuild: Error creating server: ' . ($create_resp->data->message ?? 'Unknown error'));
+                                    }
+                                } else {
+                                    $error = Language::_('Ph24Cloud.client_rebuild.rebuild_failed', true) . ' ' . ($delete_resp->data->message ?? 'Failed to delete existing server.');
+                                    error_log('PH24Cloud rebuild: Error deleting server');
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                $error = Language::_('Ph24Cloud.client_rebuild.unexpected_error', true) . ' ' . $e->getMessage();
+            }
+        }
+
+        // Fetch available images and SSH keys
+        try {
+            $row = $this->getModuleRow();
+            if (!$row && method_exists($this, 'getModuleRows')) {
+                $rows = $this->getModuleRows();
+                if (is_array($rows) && !empty($rows)) {
+                    $row = $rows[0];
+                }
+            }
+
+            if (!$row || empty($row->meta->api_key)) {
+                $error = $error ?: Language::_('Ph24Cloud.client_rebuild.no_configured_row', true);
+            } else {
+                $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+                $fields = $this->serviceFieldsToObject($service->fields);
+                $project_id = $fields->project_id ?? null;
+                $client_id = $service->client_id;
+
+                // Use master_project_id if configured
+                $master_project_id = $row->meta->master_project_id ?? null;
+                $list_project_id = !empty($master_project_id) ? $master_project_id : $project_id;
+
+                if (!$list_project_id) {
+                    $error = $error ?: Language::_('Ph24Cloud.client_rebuild.server_not_found', true);
+                } else {
+                    // Fetch images
+                    $images_resp = $api->getCloudImages($list_project_id);
+                    if ($images_resp->code >= 200 && $images_resp->code < 300 && is_array($images_resp->data)) {
+                        $images = $images_resp->data;
+                    }
+
+                    // Fetch SSH keys
+                    $keys_resp = $api->getKeyPairs($list_project_id);
+                    if ($keys_resp->code >= 200 && $keys_resp->code < 300 && is_array($keys_resp->data)) {
+                        // Filter keys to only show keys belonging to this customer
+                        $customer_prefix = 'cust-' . $client_id . '-';
+                        foreach ($keys_resp->data as $key) {
+                            if (isset($key->name) && strpos($key->name, $customer_prefix) === 0) {
+                                // Remove the prefix for display
+                                $key->displayName = substr($key->name, strlen($customer_prefix));
+                                $ssh_keys[] = $key;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $error = $error ?: (Language::_('Ph24Cloud.client_rebuild.unexpected_error', true) . ' ' . $e->getMessage());
+        }
+
+        $this->view->set('message', $message);
+        $this->view->set('error', $error);
+        $this->view->set('ssh_keys', $ssh_keys);
+        $this->view->set('images', $images);
         $this->view->set('package', $package);
         $this->view->set('service', $service);
 

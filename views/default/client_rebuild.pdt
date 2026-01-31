@@ -1,0 +1,71 @@
+<?php
+/**
+ * Client Rebuild View
+ */
+?>
+<div class="pad">
+    <?php if ($message) { ?>
+        <div class="alert alert-success">
+            <p><?php echo $message; ?></p>
+        </div>
+    <?php } ?>
+    
+    <?php if ($error) { ?>
+        <div class="alert alert-danger">
+            <p><?php echo $error; ?></p>
+        </div>
+    <?php } ?>
+
+    <div class="alert alert-warning">
+        <p><strong><?php $this->_('Ph24Cloud.client_rebuild.warning_title'); ?></strong></p>
+        <p><?php $this->_('Ph24Cloud.client_rebuild.warning_message'); ?></p>
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            <h4><?php $this->_('Ph24Cloud.client_rebuild.heading_rebuild'); ?></h4>
+            
+            <?php
+            $form = $this->Form->create(null, ['id' => 'rebuild_form']);
+            ?>
+            
+            <div class="form-group">
+                <?php
+                $this->Form->label($this->_('Ph24Cloud.client_rebuild.field_os', true), 'image_id');
+                
+                $image_options = ['' => $this->_('Ph24Cloud.client_rebuild.field_os_select', true)];
+                foreach ($images as $image) {
+                    $image_options[$image->id] = $image->name ?? $image->id;
+                }
+                
+                $this->Form->fieldSelect('image_id', $image_options, null, ['id' => 'image_id', 'class' => 'form-control']);
+                ?>
+                <small class="form-text text-muted"><?php $this->_('Ph24Cloud.client_rebuild.field_os_help'); ?></small>
+            </div>
+
+            <div class="form-group">
+                <?php
+                $this->Form->label($this->_('Ph24Cloud.client_rebuild.field_ssh_key', true), 'ssh_key');
+                
+                $ssh_key_options = ['' => $this->_('Ph24Cloud.client_rebuild.field_ssh_key_none', true)];
+                foreach ($ssh_keys as $key) {
+                    $ssh_key_options[$key->name] = $key->displayName;
+                }
+                
+                $this->Form->fieldSelect('ssh_key', $ssh_key_options, null, ['id' => 'ssh_key', 'class' => 'form-control']);
+                ?>
+                <small class="form-text text-muted"><?php $this->_('Ph24Cloud.client_rebuild.field_ssh_key_help'); ?></small>
+            </div>
+
+            <div class="form-group">
+                <?php
+                $this->Form->fieldSubmit('rebuild_server', $this->_('Ph24Cloud.client_rebuild.btn_rebuild', true), ['class' => 'btn btn-danger', 'onclick' => 'return confirm(\'' . $this->_('Ph24Cloud.client_rebuild.confirm_rebuild', true) . '\');']);
+                ?>
+            </div>
+
+            <?php
+            $this->Form->end();
+            ?>
+        </div>
+    </div>
+</div>
