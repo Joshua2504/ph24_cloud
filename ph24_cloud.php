@@ -1089,7 +1089,7 @@ class Ph24Cloud extends Module
                 $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
             }
 
-            if ($api && !empty($row->meta->master_project_id) && !empty($row->meta->use_master_project)) {
+            if ($api && !empty($row->meta->master_project_id)) {
                 $imgs = $api->getProjectImages($row->meta->master_project_id);
                 if ($imgs->code >= 200 && $imgs->code < 300 && is_array($imgs->data)) {
                     foreach ($imgs->data as $im) {
@@ -1170,19 +1170,24 @@ class Ph24Cloud extends Module
         error_log('PH24Cloud getClientAddFields called with package: ' . print_r($package, true));
         error_log('PH24Cloud getClientAddFields called with vars: ' . print_r($vars, true));
 
+        // Get module row and API - needed for multiple operations
+        $row = $this->getModuleRow();
+        if (!$row && method_exists($this, 'getModuleRows')) {
+            $rows = $this->getModuleRows();
+            if (is_array($rows) && !empty($rows)) {
+                $row = $rows[0];
+            }
+        }
+
+        $api = null;
+        if ($row && isset($row->meta->api_key)) {
+            $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+        }
+
         // Operating System (images) + Hostname for client order form
         $image_options = [];
         try {
-            $row = $this->getModuleRow();
-            if (!$row && method_exists($this, 'getModuleRows')) {
-                $rows = $this->getModuleRows();
-                if (is_array($rows) && !empty($rows)) {
-                    $row = $rows[0];
-                }
-            }
-
-            if ($row && !empty($row->meta->master_project_id) && !empty($row->meta->use_master_project)) {
-                $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+            if ($api && !empty($row->meta->master_project_id)) {
                 $imgs = $api->getProjectImages($row->meta->master_project_id);
                 if ($imgs->code >= 200 && $imgs->code < 300 && is_array($imgs->data)) {
                     foreach ($imgs->data as $im) {
@@ -1201,7 +1206,7 @@ class Ph24Cloud extends Module
         // Availability zones (live-loaded)
         $availability_options = [];
         try {
-            if (isset($api) && method_exists($api, 'getAvailabilityZones')) {
+            if ($api && method_exists($api, 'getAvailabilityZones')) {
                 $az_resp = $api->getAvailabilityZones();
                 if ($az_resp->code >= 200 && $az_resp->code < 300 && is_array($az_resp->data)) {
                     foreach ($az_resp->data as $az) {
@@ -1241,6 +1246,47 @@ class Ph24Cloud extends Module
             $fields->fieldText('hostname', (isset($vars->hostname) ? $vars->hostname : null), ['id' => 'hostname'])
         );
         $fields->setField($hostname);
+
+        // SSH Key Selection
+        $ssh_key_options = ['' => Language::_('Ph24Cloud.service_field.ssh_key_none', true)];
+        try {
+            if ($api && $row && !empty($row->meta->master_project_id)) {
+                // Get client_id from vars, or from session if not in vars
+                $client_id = $vars->client_id ?? null;
+                
+                // If not in vars, try to get from session
+                if (!$client_id && isset($_SESSION['blesta_client_id'])) {
+                    $client_id = $_SESSION['blesta_client_id'];
+                }
+                
+                // Also check if it's in the global session variable
+                if (!$client_id && class_exists('Session')) {
+                    Loader::loadComponents($this, ['Session']);
+                    $client_id = $this->Session->read('blesta_client_id');
+                }
+                
+                if ($client_id) {
+                    $keys_resp = $api->getKeyPairs($row->meta->master_project_id);
+                    if ($keys_resp->code >= 200 && $keys_resp->code < 300 && is_array($keys_resp->data)) {
+                        $customer_prefix = 'cust-' . $client_id . '-';
+                        foreach ($keys_resp->data as $key) {
+                            if (isset($key->name) && strpos($key->name, $customer_prefix) === 0) {
+                                $display_name = substr($key->name, strlen($customer_prefix));
+                                $ssh_key_options[$key->name] = $display_name;
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            error_log('PH24Cloud getClientAddFields SSH key fetch error: ' . $e->getMessage());
+        }
+
+        $ssh_key_label = $fields->label(Language::_('Ph24Cloud.service_field.ssh_key', true), 'ssh_key_selection');
+        $ssh_key_label->attach(
+            $fields->fieldSelect('ssh_key_selection', $ssh_key_options, ($vars->ssh_key_selection ?? ''), ['id' => 'ssh_key_selection'])
+        );
+        $fields->setField($ssh_key_label);
 
         return $fields;
     }
@@ -1313,7 +1359,7 @@ class Ph24Cloud extends Module
         // row, use that as a shared project for all customers. Otherwise use the
         // per-customer project stored in ModuleClientMeta or create one.
         $project_id = null;
-        if (!empty($row->meta->master_project_id) && !empty($row->meta->use_master_project)) {
+        if (!empty($row->meta->master_project_id)) {
             $project_id = $row->meta->master_project_id;
             error_log('PH24Cloud addService using master_project_id for all customers: ' . $project_id);
         } else {
@@ -1339,12 +1385,15 @@ class Ph24Cloud extends Module
                     $err_msg = Language::_('Ph24Cloud.!error.api.project_create', true);
                     if (isset($project_response->data->message)) {
                         $err_msg .= ': ' . $project_response->data->message;
-                    } else {
-                        // Include any returned payload for diagnostics
-                        $payload = is_scalar($project_response->data) ? $project_response->data : json_encode($project_response->data);
-                        if ($payload) {
-                            $err_msg .= ' (response: ' . $payload . ')';
-                        }
+                    }
+                    if (isset($project_response->data->badRequestMessage)) {
+                        $err_msg .= ' - ' . $project_response->data->badRequestMessage;
+                    }
+                    
+                    // If it's a project limit error, suggest using master project
+                    if (isset($project_response->data->badRequestCode) && $project_response->data->badRequestCode === 'REJECTED' 
+                        && strpos($project_response->data->badRequestMessage ?? '', 'Maximum number of projects') !== false) {
+                        $err_msg .= ' | TIP: Enable "Use Master Project" in module configuration to use a shared project for all customers.';
                     }
 
                     $this->Input->setErrors([
@@ -1463,6 +1512,15 @@ class Ph24Cloud extends Module
         // Generate root password
         $root_password = $this->generatePassword(16);
         
+        // Handle SSH key selection
+        $ssh_key_names = [];
+        
+        // Check if user selected an existing SSH key
+        if (!empty($vars['ssh_key_selection'])) {
+            $ssh_key_names[] = $vars['ssh_key_selection'];
+            error_log('PH24Cloud: Using existing SSH key: ' . $vars['ssh_key_selection']);
+        }
+        
         $server_params = [
             'name' => $vars['hostname'],
             'flavorId' => $package->meta->flavor_id,
@@ -1472,6 +1530,11 @@ class Ph24Cloud extends Module
             'firewallIds' => $firewall_ids,
             'count' => 1
         ];
+        
+        // Add SSH keys if any were selected or created
+        if (!empty($ssh_key_names)) {
+            $server_params['keyPairNames'] = $ssh_key_names;
+        }
         
         // Add facility if specified
         if ($facility_id) {

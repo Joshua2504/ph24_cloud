@@ -79,6 +79,12 @@ $lang['Ph24Cloud.service_field.image_id'] = 'Operating System';
 $lang['Ph24Cloud.service_field.operating_system'] = 'Operating System';
 $lang['Ph24Cloud.service_field.facility_id'] = 'Facility / Data Center';
 $lang['Ph24Cloud.service_field.placeholder_no_images'] = '- No images available -';
+$lang['Ph24Cloud.service_field.ssh_key'] = 'SSH Key (Optional)';
+$lang['Ph24Cloud.service_field.ssh_key_none'] = '- Add later -';
+$lang['Ph24Cloud.service_field.new_ssh_key_name'] = 'Or Add New SSH Key Name';
+$lang['Ph24Cloud.service_field.new_ssh_key_name_placeholder'] = 'e.g., my-laptop';
+$lang['Ph24Cloud.service_field.new_ssh_key_public'] = 'New SSH Key Public Key';
+$lang['Ph24Cloud.service_field.new_ssh_key_public_placeholder'] = 'Paste your SSH public key (e.g., ssh-rsa AAAAB3NzaC1yc2E...)';
 
 // Tabs
 $lang['Ph24Cloud.tab_actions'] = 'Server Actions';
