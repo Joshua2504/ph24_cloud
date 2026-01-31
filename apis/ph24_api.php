@@ -388,4 +388,43 @@ class Ph24Api
     {
         return $this->request('GET', '/v1/vps/addons');
     }
+
+    /**
+     * Get all SSH key pairs in a project
+     *
+     * @param string $project_id The project ID
+     * @return stdClass Response object
+     */
+    public function getKeyPairs($project_id)
+    {
+        return $this->request('GET', "/v1/cloud/project/{$project_id}/key-pair");
+    }
+
+    /**
+     * Create a new SSH key pair in a project
+     *
+     * @param string $project_id The project ID
+     * @param string $name The key pair name
+     * @param string $public_key The public key content
+     * @return stdClass Response object
+     */
+    public function createKeyPair($project_id, $name, $public_key)
+    {
+        return $this->request('POST', "/v1/cloud/project/{$project_id}/key-pair", [
+            'name' => $name,
+            'publicKey' => $public_key
+        ]);
+    }
+
+    /**
+     * Delete an SSH key pair from a project
+     *
+     * @param string $project_id The project ID
+     * @param string $key_pair_name The key pair name
+     * @return stdClass Response object
+     */
+    public function deleteKeyPair($project_id, $key_pair_name)
+    {
+        return $this->request('DELETE', "/v1/cloud/project/{$project_id}/key-pair/{$key_pair_name}");
+    }
 }

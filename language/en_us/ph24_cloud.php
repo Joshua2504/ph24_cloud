@@ -87,6 +87,7 @@ $lang['Ph24Cloud.tab_client_actions'] = 'Actions';
 $lang['Ph24Cloud.tab_client_stats'] = 'Statistics';
 $lang['Ph24Cloud.tab_client_logs'] = 'Logs';
 $lang['Ph24Cloud.tab_client_console'] = 'VNC Console';
+$lang['Ph24Cloud.tab_client_ssh_keys'] = 'SSH Keys';
 
 // Client Actions (manage server from client area)
 $lang['Ph24Cloud.client_actions.heading'] = 'Server Overview';
@@ -164,3 +165,38 @@ $lang['Ph24Cloud.!success.server_created'] = 'Server successfully created.';
 $lang['Ph24Cloud.!success.server_deleted'] = 'Server successfully deleted.';
 $lang['Ph24Cloud.!success.server_suspended'] = 'Server successfully suspended.';
 $lang['Ph24Cloud.!success.server_unsuspended'] = 'Server successfully unsuspended.';
+
+// Client SSH Keys
+$lang['Ph24Cloud.client_ssh_keys.heading'] = 'SSH Key Management';
+$lang['Ph24Cloud.client_ssh_keys.add_key_title'] = 'Add New SSH Key';
+$lang['Ph24Cloud.client_ssh_keys.existing_keys_title'] = 'Your SSH Keys';
+$lang['Ph24Cloud.client_ssh_keys.field_key_name'] = 'Key Name';
+$lang['Ph24Cloud.client_ssh_keys.field_public_key'] = 'Public Key';
+$lang['Ph24Cloud.client_ssh_keys.placeholder_key_name'] = 'e.g., my-laptop';
+$lang['Ph24Cloud.client_ssh_keys.placeholder_public_key'] = 'Paste your SSH public key here (e.g., ssh-rsa AAAAB3NzaC1yc2E...)';
+$lang['Ph24Cloud.client_ssh_keys.key_name_note'] = 'A friendly name to identify this SSH key. Only alphanumeric characters, hyphens, and underscores are recommended.';
+$lang['Ph24Cloud.client_ssh_keys.public_key_note'] = 'Paste the contents of your public key file (usually id_rsa.pub or id_ed25519.pub).';
+$lang['Ph24Cloud.client_ssh_keys.button_add'] = 'Add SSH Key';
+$lang['Ph24Cloud.client_ssh_keys.button_edit'] = 'Edit';
+$lang['Ph24Cloud.client_ssh_keys.button_save'] = 'Save';
+$lang['Ph24Cloud.client_ssh_keys.button_cancel'] = 'Cancel';
+$lang['Ph24Cloud.client_ssh_keys.button_delete'] = 'Delete';
+$lang['Ph24Cloud.client_ssh_keys.no_keys'] = 'You have not added any SSH keys yet.';
+$lang['Ph24Cloud.client_ssh_keys.column_name'] = 'Name';
+$lang['Ph24Cloud.client_ssh_keys.column_fingerprint'] = 'Fingerprint';
+$lang['Ph24Cloud.client_ssh_keys.column_public_key'] = 'Public Key';
+$lang['Ph24Cloud.client_ssh_keys.column_actions'] = 'Actions';
+$lang['Ph24Cloud.client_ssh_keys.confirm_delete'] = 'Are you sure you want to delete this SSH key?';
+$lang['Ph24Cloud.client_ssh_keys.key_added'] = 'SSH key has been successfully added.';
+$lang['Ph24Cloud.client_ssh_keys.key_deleted'] = 'SSH key has been successfully deleted.';
+$lang['Ph24Cloud.client_ssh_keys.key_renamed'] = 'SSH key has been successfully renamed.';
+$lang['Ph24Cloud.client_ssh_keys.add_failed'] = 'Failed to add SSH key.';
+$lang['Ph24Cloud.client_ssh_keys.delete_failed'] = 'Failed to delete SSH key.';
+$lang['Ph24Cloud.client_ssh_keys.rename_failed'] = 'Failed to rename SSH key.';
+$lang['Ph24Cloud.client_ssh_keys.missing_key_name'] = 'Please provide a key name.';
+$lang['Ph24Cloud.client_ssh_keys.fetch_failed'] = 'Failed to retrieve SSH keys.';
+$lang['Ph24Cloud.client_ssh_keys.missing_fields'] = 'Please provide both a key name and a public key.';
+$lang['Ph24Cloud.client_ssh_keys.not_authorized'] = 'You are not authorized to delete this SSH key.';
+$lang['Ph24Cloud.client_ssh_keys.no_configured_row'] = 'No API server is configured.';
+$lang['Ph24Cloud.client_ssh_keys.server_not_found'] = 'Server details not found for this service.';
+$lang['Ph24Cloud.client_ssh_keys.unexpected_error'] = 'An unexpected error occurred.';

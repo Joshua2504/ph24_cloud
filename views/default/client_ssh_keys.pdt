@@ -1,0 +1,188 @@
+<?php if (isset($message) && $message): ?>
+<div class="alert alert-success"><?= $this->Html->safe($message) ?></div>
+<?php endif; ?>
+
+<?php if (isset($error) && $error): ?>
+<div class="alert alert-danger"><?= $this->Html->safe($error) ?></div>
+<?php endif; ?>
+
+<h3><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.heading', true)) ?></h3>
+
+<div class="panel panel-blesta">
+    <div class="panel-heading">
+        <h3 class="panel-title"><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.add_key_title', true)) ?></h3>
+    </div>
+    <div class="panel-body">
+        <?php echo $this->Form->create(null, ['class' => 'disable-on-submit']); ?>
+        <div class="form-group">
+            <?php
+            $this->Form->label(Language::_('Ph24Cloud.client_ssh_keys.field_key_name', true), 'key_name');
+            $this->Form->fieldText('key_name', $this->Html->ifSet($_POST['key_name']), ['id' => 'key_name', 'class' => 'form-control', 'placeholder' => Language::_('Ph24Cloud.client_ssh_keys.placeholder_key_name', true)]);
+            ?>
+            <small class="help-block"><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.key_name_note', true)) ?></small>
+        </div>
+        <div class="form-group">
+            <?php
+            $this->Form->label(Language::_('Ph24Cloud.client_ssh_keys.field_public_key', true), 'public_key');
+            $this->Form->fieldTextarea('public_key', $this->Html->ifSet($_POST['public_key']), ['id' => 'public_key', 'class' => 'form-control', 'rows' => '4', 'placeholder' => Language::_('Ph24Cloud.client_ssh_keys.placeholder_public_key', true)]);
+            ?>
+            <small class="help-block"><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.public_key_note', true)) ?></small>
+        </div>
+        <div class="form-group">
+            <?php
+            $this->Form->fieldSubmit('add_key', Language::_('Ph24Cloud.client_ssh_keys.button_add', true), ['class' => 'btn btn-primary']);
+            ?>
+        </div>
+        <?php echo $this->Form->end(); ?>
+    </div>
+</div>
+
+<div class="panel panel-blesta">
+    <div class="panel-heading">
+        <h3 class="panel-title"><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.existing_keys_title', true)) ?></h3>
+    </div>
+    <div class="panel-body">
+        <?php if (empty($ssh_keys)): ?>
+            <div class="alert alert-info"><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.no_keys', true)) ?></div>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.column_name', true)) ?></th>
+                            <th><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.column_public_key', true)) ?></th>
+                            <th class="text-right"><?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.column_actions', true)) ?></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($ssh_keys as $key): ?>
+                            <tr class="ssh-key-row" data-key-name="<?= $this->Html->safe($key->name) ?>">
+                                <td>
+                                    <span class="key-name-display"><?= $this->Html->safe($key->displayName ?? $key->name) ?></span>
+                                    <span class="key-name-edit" style="display:none;">
+                                        <input type="text" class="form-control form-control-sm key-name-input" value="<?= $this->Html->safe($key->displayName ?? $key->name) ?>" style="display:inline-block; width:auto; min-width:150px;">
+                                    </span>
+                                </td>
+                                <td>
+                                    <div style="max-width: 500px; white-space: pre-wrap; word-wrap: break-word; overflow-wrap: break-word;">
+                                        <code style="font-size:11px;"><?= $this->Html->safe($key->publicKey ?? 'N/A') ?></code>
+                                    </div>
+                                </td>
+                                <td class="text-right">
+                                    <div class="action-buttons">
+                                        <button type="button" class="btn btn-info btn-sm btn-edit-key">
+                                            <?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.button_edit', true)) ?>
+                                        </button>
+                                        
+                                        <?php echo $this->Form->create(null, ['style' => 'display:inline;', 'class' => 'form-delete-key']); ?>
+                                        <input type="hidden" name="delete_key" value="<?= $this->Html->safe($key->name) ?>">
+                                        <?php
+                                        $this->Form->fieldSubmit('confirm_delete', Language::_('Ph24Cloud.client_ssh_keys.button_delete', true), [
+                                            'class' => 'btn btn-danger btn-sm',
+                                            'onclick' => 'return confirm(\'' . Language::_('Ph24Cloud.client_ssh_keys.confirm_delete', true) . '\');'
+                                        ]);
+                                        ?>
+                                        <?php echo $this->Form->end(); ?>
+                                    </div>
+                                    
+                                    <div class="edit-buttons" style="display:none;">
+                                        <?php echo $this->Form->create(null, ['style' => 'display:inline;', 'class' => 'form-rename-key']); ?>
+                                        <input type="hidden" name="rename_key" value="<?= $this->Html->safe($key->name) ?>">
+                                        <input type="hidden" name="new_key_name" class="new-key-name-input" value="">
+                                        <input type="hidden" name="key_public_key" value="<?= $this->Html->safe($key->publicKey ?? '') ?>">
+                                        <?php
+                                        $this->Form->fieldSubmit('confirm_save', Language::_('Ph24Cloud.client_ssh_keys.button_save', true), [
+                                            'class' => 'btn btn-success btn-sm btn-save-key'
+                                        ]);
+                                        ?>
+                                        <?php echo $this->Form->end(); ?>
+                                        
+                                        <button type="button" class="btn btn-default btn-sm btn-cancel-edit">
+                                            <?= $this->Html->safe(Language::_('Ph24Cloud.client_ssh_keys.button_cancel', true)) ?>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+
+<style>
+    .disable-on-submit button[type="submit"] {
+        transition: opacity 0.3s;
+    }
+    .disable-on-submit.submitting button[type="submit"] {
+        opacity: 0.6;
+        pointer-events: none;
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Disable submit buttons on form submission to prevent double-clicks
+    var forms = document.querySelectorAll('.disable-on-submit');
+    forms.forEach(function(form) {
+        form.addEventListener('submit', function() {
+            form.classList.add('submitting');
+        });
+    });
+    
+    // Handle edit button clicks
+    document.querySelectorAll('.btn-edit-key').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var row = this.closest('.ssh-key-row');
+            
+            // Hide display elements
+            row.querySelector('.key-name-display').style.display = 'none';
+            row.querySelector('.action-buttons').style.display = 'none';
+            
+            // Show edit elements
+            row.querySelector('.key-name-edit').style.display = 'inline';
+            row.querySelector('.edit-buttons').style.display = 'inline';
+            
+            // Focus on input
+            row.querySelector('.key-name-input').focus();
+        });
+    });
+    
+    // Handle cancel button clicks
+    document.querySelectorAll('.btn-cancel-edit').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            var row = this.closest('.ssh-key-row');
+            
+            // Reset input to original value
+            var displayName = row.querySelector('.key-name-display').textContent;
+            row.querySelector('.key-name-input').value = displayName;
+            
+            // Show display elements
+            row.querySelector('.key-name-display').style.display = 'inline';
+            row.querySelector('.action-buttons').style.display = 'inline';
+            
+            // Hide edit elements
+            row.querySelector('.key-name-edit').style.display = 'none';
+            row.querySelector('.edit-buttons').style.display = 'none';
+        });
+    });
+    
+    // Handle save button clicks - update hidden input before form submission
+    document.querySelectorAll('.btn-save-key').forEach(function(btn) {
+        btn.addEventListener('click', function(e) {
+            var row = this.closest('.ssh-key-row');
+            var newKeyName = row.querySelector('.key-name-input').value.trim();
+            
+            if (!newKeyName) {
+                alert('Please enter a key name.');
+                e.preventDefault();
+                return false;
+            }
+            
+            // Update the hidden input with the new name
+            row.querySelector('.new-key-name-input').value = newKeyName;
+        });
+    });
+});
+</script>

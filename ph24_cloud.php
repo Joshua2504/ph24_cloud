@@ -56,6 +56,7 @@ class Ph24Cloud extends Module
             'tabClientStats' => Language::_('Ph24Cloud.tab_client_stats', true),
             'tabClientLogs' => Language::_('Ph24Cloud.tab_client_logs', true),
             'tabClientConsole' => Language::_('Ph24Cloud.tab_client_console', true),
+            'tabClientSshKeys' => Language::_('Ph24Cloud.tab_client_ssh_keys', true),
         ];
     }
 
@@ -364,6 +365,170 @@ class Ph24Cloud extends Module
 
         $this->view->set('message', $message);
         $this->view->set('console_url', $console_url);
+        $this->view->set('package', $package);
+        $this->view->set('service', $service);
+
+        return $this->view->fetch();
+    }
+
+    /**
+     * Client tab: SSH Keys - manage SSH keys
+     *
+     * @param stdClass $package The package
+     * @param stdClass $service The service
+     * @return string HTML content for the tab
+     */
+    public function tabClientSshKeys($package, $service)
+    {
+        $this->view = new View('client_ssh_keys', 'default');
+        $this->view->base_uri = $this->base_uri;
+        $this->view->setDefaultView('components' . DS . 'modules' . DS . 'ph24_cloud' . DS);
+
+        Loader::loadHelpers($this, ['Form', 'Html', 'Widget']);
+
+        $message = null;
+        $error = null;
+        $ssh_keys = [];
+        $client_id = null;
+
+        // Handle POST actions
+        if (!empty($_POST)) {
+            try {
+                $row = $this->getModuleRow();
+                if (!$row && method_exists($this, 'getModuleRows')) {
+                    $rows = $this->getModuleRows();
+                    if (is_array($rows) && !empty($rows)) {
+                        $row = $rows[0];
+                    }
+                }
+
+                if (!$row || empty($row->meta->api_key)) {
+                    $error = Language::_('Ph24Cloud.client_ssh_keys.no_configured_row', true);
+                } else {
+                    $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+                    $fields = $this->serviceFieldsToObject($service->fields);
+                    $project_id = $fields->project_id ?? null;
+                    $client_id = $service->client_id;
+
+                    if (!$project_id) {
+                        $error = Language::_('Ph24Cloud.client_ssh_keys.server_not_found', true);
+                    } else {
+                        // Handle rename action
+                        if (isset($_POST['rename_key'])) {
+                            $old_key_name = $_POST['rename_key'];
+                            $new_display_name = trim($_POST['new_key_name'] ?? '');
+                            $public_key = trim($_POST['key_public_key'] ?? '');
+                            
+                            // Ensure the old key name starts with the customer prefix
+                            if (!preg_match('/^cust-' . preg_quote($client_id, '/') . '-/', $old_key_name)) {
+                                $error = Language::_('Ph24Cloud.client_ssh_keys.not_authorized', true);
+                            } elseif (empty($new_display_name)) {
+                                $error = Language::_('Ph24Cloud.client_ssh_keys.missing_key_name', true);
+                            } else {
+                                // Delete the old key and create a new one with the updated name
+                                $delete_resp = $api->deleteKeyPair($project_id, $old_key_name);
+                                if ($delete_resp->code >= 200 && $delete_resp->code < 300) {
+                                    $new_key_name = 'cust-' . $client_id . '-' . $new_display_name;
+                                    $create_resp = $api->createKeyPair($project_id, $new_key_name, $public_key);
+                                    if ($create_resp->code >= 200 && $create_resp->code < 300) {
+                                        $message = Language::_('Ph24Cloud.client_ssh_keys.key_renamed', true);
+                                    } else {
+                                        // Try to restore the old key if creation failed
+                                        $api->createKeyPair($project_id, $old_key_name, $public_key);
+                                        $error = Language::_('Ph24Cloud.client_ssh_keys.rename_failed', true) . ' ' . ($create_resp->data->message ?? '');
+                                    }
+                                } else {
+                                    $error = Language::_('Ph24Cloud.client_ssh_keys.rename_failed', true) . ' ' . ($delete_resp->data->message ?? '');
+                                }
+                            }
+                        }
+                        // Handle delete action
+                        elseif (isset($_POST['delete_key'])) {
+                            $key_name = $_POST['delete_key'];
+                            
+                            // Ensure the key name starts with the customer prefix
+                            if (!preg_match('/^cust-' . preg_quote($client_id, '/') . '-/', $key_name)) {
+                                $error = Language::_('Ph24Cloud.client_ssh_keys.not_authorized', true);
+                            } else {
+                                $resp = $api->deleteKeyPair($project_id, $key_name);
+                                if ($resp->code >= 200 && $resp->code < 300) {
+                                    $message = Language::_('Ph24Cloud.client_ssh_keys.key_deleted', true);
+                                } else {
+                                    $error = Language::_('Ph24Cloud.client_ssh_keys.delete_failed', true) . ' ' . ($resp->data->message ?? '');
+                                }
+                            }
+                        }
+                        // Handle add action
+                        elseif (isset($_POST['add_key'])) {
+                            $key_name = trim($_POST['key_name'] ?? '');
+                            $public_key = trim($_POST['public_key'] ?? '');
+
+                            if (empty($key_name) || empty($public_key)) {
+                                $error = Language::_('Ph24Cloud.client_ssh_keys.missing_fields', true);
+                            } else {
+                                // Enforce the customer prefix
+                                $prefixed_name = 'cust-' . $client_id . '-' . $key_name;
+                                
+                                $resp = $api->createKeyPair($project_id, $prefixed_name, $public_key);
+                                if ($resp->code >= 200 && $resp->code < 300) {
+                                    $message = Language::_('Ph24Cloud.client_ssh_keys.key_added', true);
+                                } else {
+                                    $error = Language::_('Ph24Cloud.client_ssh_keys.add_failed', true) . ' ' . ($resp->data->message ?? '');
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception $e) {
+                $error = Language::_('Ph24Cloud.client_ssh_keys.unexpected_error', true) . ' ' . $e->getMessage();
+            }
+        }
+
+        // Fetch SSH keys
+        try {
+            $row = $this->getModuleRow();
+            if (!$row && method_exists($this, 'getModuleRows')) {
+                $rows = $this->getModuleRows();
+                if (is_array($rows) && !empty($rows)) {
+                    $row = $rows[0];
+                }
+            }
+
+            if (!$row || empty($row->meta->api_key)) {
+                $error = $error ?: Language::_('Ph24Cloud.client_ssh_keys.no_configured_row', true);
+            } else {
+                $api = $this->getApi($row->meta->api_key, $row->meta->api_url ?? null);
+                $fields = $this->serviceFieldsToObject($service->fields);
+                $project_id = $fields->project_id ?? null;
+                $client_id = $service->client_id;
+
+                if (!$project_id) {
+                    $error = $error ?: Language::_('Ph24Cloud.client_ssh_keys.server_not_found', true);
+                } else {
+                    $resp = $api->getKeyPairs($project_id);
+                    if ($resp->code >= 200 && $resp->code < 300 && is_array($resp->data)) {
+                        // Filter keys to only show keys belonging to this customer
+                        $customer_prefix = 'cust-' . $client_id . '-';
+                        foreach ($resp->data as $key) {
+                            if (isset($key->name) && strpos($key->name, $customer_prefix) === 0) {
+                                // Remove the prefix for display
+                                $key->displayName = substr($key->name, strlen($customer_prefix));
+                                $ssh_keys[] = $key;
+                            }
+                        }
+                    } else {
+                        $error = $error ?: (Language::_('Ph24Cloud.client_ssh_keys.fetch_failed', true) . ' ' . ($resp->data->message ?? ''));
+                    }
+                }
+            }
+        } catch (Exception $e) {
+            $error = $error ?: (Language::_('Ph24Cloud.client_ssh_keys.unexpected_error', true) . ' ' . $e->getMessage());
+        }
+
+        $this->view->set('message', $message);
+        $this->view->set('error', $error);
+        $this->view->set('ssh_keys', $ssh_keys);
+        $this->view->set('client_id', $client_id);
         $this->view->set('package', $package);
         $this->view->set('service', $service);
 
