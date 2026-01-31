@@ -1,0 +1,59 @@
+
+        <?php
+        $link_buttons = [
+    ['name' => $this->_('Ph24Cloud.manage.add_server', true), 'attributes' => ['href' => $this->base_uri . 'settings/company/modules/addrow/' . $module->id]],
+];
+
+$this->Widget->clear();
+$this->Widget->setLinkButtons($link_buttons);
+$this->Widget->create($this->_('Ph24Cloud.manage.module_rows_title', true), ['id' => 'ph24_cloud_manage']);
+
+if (!empty($module->rows)) {
+?>
+<table class="table">
+            <thead>
+                <tr class="heading_row">
+                    <td><?php $this->_('Ph24Cloud.manage.account_name');?></td>
+                    <td><?php $this->_('Ph24Cloud.manage.api_url');?></td>
+                    <td><?php $this->_('Ph24Cloud.manage.project_template');?></td>
+                    <td class="last"><?php $this->_('Ph24Cloud.manage.options');?></td>
+                </tr>
+            </thead>
+            <tbody>
+                <?php
+                foreach ($module->rows as $row) {
+                ?>
+                <tr>
+                    <td><?php echo $this->Html->safe($row->meta->account_name);?></td>
+                    <td><?php echo $this->Html->safe($row->meta->api_url);?></td>
+                    <td><?php echo $this->Html->safe($row->meta->project_name_template ?? 'cust-{id}');?></td>
+                    <td>
+                        <a href="<?php echo $this->Html->safe($this->base_uri . 'settings/company/modules/editrow/' . $module->id . '/' . $row->id);?>"><?php $this->_('Ph24Cloud.manage.edit');?></a>
+                        <?php
+                        $this->Form->create($this->base_uri . 'settings/company/modules/deleterow/');
+                        $this->Form->fieldHidden('id', $module->id);
+                        $this->Form->fieldHidden('row_id', $row->id);
+                        ?>
+                        <a href="<?php echo $this->Html->safe($this->base_uri . 'settings/company/modules/deleterow/' . $module->id . '/' . $row->id);?>" class="manage" rel="<?php echo $this->Html->safe($this->_('Ph24Cloud.manage.delete_row', true));?>"><?php $this->_('Ph24Cloud.manage.delete');?></a>
+                        <?php
+                        $this->Form->end();
+                        ?>
+                    </td>
+                </tr>
+                <?php
+                }
+                ?>
+            </tbody>
+        </table>
+        <?php
+        } else {
+        ?>
+        <div class="empty_section">
+            <div class="empty_box">
+                <?php $this->_('Ph24Cloud.manage.no_module_rows');?>
+            </div>
+        </div>
+        <?php
+        }
+        $this->Widget->end();
+        ?>

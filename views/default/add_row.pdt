@@ -1,0 +1,77 @@
+
+        <?php
+        $this->Widget->clear();
+        $this->Widget->create($this->_('Ph24Cloud.add_row.box_title', true), ['id' => 'ph24_cloud_add_row']);
+        ?>
+        <div class="inner">
+            <?php
+            $this->Form->create();
+            ?>
+            <div class="title_row first">
+                <h3><?php $this->_('Ph24Cloud.add_row.basic_title');?></h3>
+            </div>
+            <div class="pad">
+                <ul>
+                    <li>
+                        <?php
+                        $this->Form->label($this->_('Ph24Cloud.row_meta.account_name', true), 'account_name');
+                        $this->Form->fieldText('account_name', (isset($vars->account_name) ? $vars->account_name : null), ['id' => 'account_name']);
+                        ?>
+                        <span class="tooltip"><?php $this->_('Ph24Cloud.!tooltip.account_name');?></span>
+                    </li>
+                    <li>
+                        <?php
+                        $this->Form->label($this->_('Ph24Cloud.row_meta.api_url', true), 'api_url');
+                        $this->Form->fieldText('api_url', (isset($vars->api_url) ? $vars->api_url : 'https://ph24.io/service'), ['id' => 'api_url']);
+                        ?>
+                        <span class="tooltip"><?php $this->_('Ph24Cloud.!tooltip.api_url');?></span>
+                    </li>
+                    <li>
+                        <?php
+                        $this->Form->label($this->_('Ph24Cloud.row_meta.api_key', true), 'api_key');
+                        $this->Form->fieldText('api_key', (isset($vars->api_key) ? $vars->api_key : null), ['id' => 'api_key']);
+                        ?>
+                        <span class="tooltip"><?php $this->_('Ph24Cloud.!tooltip.api_key');?></span>
+                    </li>
+                    <li>
+                        <?php
+                        $this->Form->label($this->_('Ph24Cloud.row_meta.project_name_template', true), 'project_name_template');
+                        $this->Form->fieldText('project_name_template', (isset($vars->project_name_template) ? $vars->project_name_template : 'cust-{id}'), ['id' => 'project_name_template']);
+                        ?>
+                        <span class="tooltip"><?php $this->_('Ph24Cloud.!tooltip.project_name_template');?></span>
+                    </li>
+                    <li>
+                        <?php
+                        $this->Form->fieldCheckbox('use_master_project', '1', (isset($vars->use_master_project) ? $vars->use_master_project == '1' : false), ['id' => 'use_master_project']);
+                        $this->Form->label($this->_('Ph24Cloud.row_meta.use_master_project', true), 'use_master_project', ['class' => 'inline']);
+                        ?>
+                        <span class="tooltip"><?php $this->_('Ph24Cloud.!tooltip.use_master_project');?></span>
+                    </li>
+                    <li>
+                        <?php
+                        $this->Form->label($this->_('Ph24Cloud.row_meta.master_project_id', true), 'master_project_id');
+                        $this->Form->fieldText('master_project_id', (isset($vars->master_project_id) ? $vars->master_project_id : null), ['id' => 'master_project_id']);
+                        ?>
+                        <span class="tooltip"><?php $this->_('Ph24Cloud.!tooltip.master_project_id');?></span>
+                    </li>
+                    <li>
+                        <?php
+                        $this->Form->fieldCheckbox('skip_validation', '1', (isset($vars->skip_validation) ? $vars->skip_validation == '1' : false), ['id' => 'skip_validation']);
+                        $this->Form->label($this->_('Ph24Cloud.row_meta.skip_validation', true), 'skip_validation', ['class' => 'inline']);
+                        ?>
+                        <span class="tooltip"><?php $this->_('Ph24Cloud.!tooltip.skip_validation');?></span>
+                    </li>
+                </ul>
+            </div>
+            <div class="button_row">
+                <?php
+                $this->Form->fieldSubmit('save', $this->_('Ph24Cloud.add_row.add_btn', true), ['class' => 'btn btn-primary pull-right']);
+                ?>
+            </div>
+            <?php
+            $this->Form->end();
+            ?>
+        </div>
+        <?php
+        $this->Widget->end();
+        ?>

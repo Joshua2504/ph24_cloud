@@ -1,0 +1,46 @@
+{
+    "version": "0.1.1",
+    "name": "Ph24Cloud.name",
+    "description": "Ph24Cloud.description",
+    "logo": "views/default/images/ph24-logo-light.svg",
+    "authors": [
+        {
+            "name": "Joshua Tobias Treudler",
+            "url": "https://github.com/Joshua2504"
+        }
+    ],
+    "module": {
+        "row": "Ph24Cloud.module_row",
+        "rows": "Ph24Cloud.module_rows",
+        "row_key": "account_name",
+        "group": "Ph24Cloud.module_group"
+    },
+    "service": {
+        "name_key": "hostname"
+    },
+    "package": {
+        "name_key": "flavor_id"
+    },
+    "email_tags": {
+        "module": [
+            "api_url",
+            "api_key",
+            "project_name_template"
+        ],
+        "package": [
+            "flavor_id",
+            "availability_zone",
+            "image_id",
+            "set_template"
+        ],
+        "service": [
+            "server_id",
+            "hostname",
+            "ip_addresses",
+            "password",
+            "status",
+            "power_state",
+            "project_id"
+        ]
+    }
+}
